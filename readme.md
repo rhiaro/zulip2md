@@ -6,9 +6,21 @@ The Zulip API lets you export a stream with all messages to JSON. This script ta
 
 ## Usage
 
+This repo contains a Dockerfile which installs the export script and its dependencies, so you can just pass it the stream and topic you want (and set some environment variables) and it'll output the markdown.
+
 ```
 $ git clone git@github.com:rhiaro/zulip2md.git
-$ python zulip2md --in=zulip-meeting.json --out=/path/to/out.md --topic=yyyy-mm-dd
+$ docker run -v /path/to/output:/srv/zulip/tools/zulip-export -e .... --name zulip2md
+```
+
+
+### Without Docker
+
+Assuming you already have the export:
+
+```
+$ git clone git@github.com:rhiaro/zulip2md.git
+$ python zulip2md --in=zulip-stream-name.json --out=/path/to/out.md --topic=yyyy-mm-dd
 ```
 
 If no topic is passed, it exports the whole stream.
