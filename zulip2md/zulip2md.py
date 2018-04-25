@@ -1,6 +1,9 @@
-from collections import OrderedDict
-import argparse
+import os
+import time
 import json
+import argparse
+from datetime import datetime
+from collections import OrderedDict
 
 
 def get_topic(jason, topic):
@@ -19,24 +22,17 @@ def get_scribed_block(first_message, data):
         text = content[1].strip()
         author = content[0].replace("@**", "")
 
-        # Sniff subsequent messages from the same speaker
-        # afters = []
-        # for message in data.values():
-        #     if message["content"].startswith("@**"):
-        #         continue
-        #     if message["timestamp"] > first_message["timestamp"] and message["content"].startswith(".."):
-        #         text = "%s\n%s" % (text, message["content"])
-
         return text, author
     else:
         return None, None
 
 
-def to_markdown(data):
+def sort_data(data):
     markdown = ""
     attributed = OrderedDict()
 
     attendees = []
+    topics = []
     proposals = []
     resolutions = []
     scribes = []
@@ -44,6 +40,11 @@ def to_markdown(data):
         # Get attendees
         if "present+" in message["content"]:
             attendees.append(message["sender_full_name"])
+        # Get topics
+        if "TOPIC:" in message["content"]:
+            topic = message["content"].replace(
+                "-", "").replace("*", "").replace("TOPIC:", "").strip()
+            topics.append((message["timestamp"], topic))
         # Get proposals
         if "PROPOSAL:" in message["content"] or "PROPOSED:" in message["content"]:
             proposals.append(message["content"])
@@ -61,7 +62,7 @@ def to_markdown(data):
             scribe = scribe.strip()
             scribes.append(scribe)
 
-        # Format scribe messages
+        # Scribe messages
         # TODO replace this with regex /@\*\*([^*]*)\*\*/ says
         if message["content"].startswith("@**"):
             text, author = get_scribed_block(message, data)
@@ -88,21 +89,70 @@ def to_markdown(data):
                 "content": message["content"],
                 "scribed": False
             }
-            # TODO: format these differently
 
         # TODO: Capture emoji reactions to messages
 
-    # Time sort
-    for k, v in attributed.items():
-        if v["author"] is not None:
-            print(v["time"])
-            print(v["author"])
-        if not v["scribed"]:
-            print(">>>> %s", v["content"])
-        else:
-            print(v["content"])
+        os.environ["TZ"] = "Europe/Paris"
+        time.tzset()
+        date = datetime.fromtimestamp(int(next(iter(attributed))))
+        meta = {
+            "date": date,
+            "attendees": attendees,
+            "topics": topics,
+            "resolutions": resolutions,
+            "proposals": proposals,
+            "scribes": scribes
+        }
 
-    # Glue together
+    return attributed, meta
+
+
+def to_markdown(messages, meta):
+
+    markdown = ""
+    topics = ""
+
+    template = """
+## Minutes: Credible Web CG (%s)
+
+* [Agenda](https://credweb.org/agenda/%s.html)
+* Attendees: %s
+* Scribe(s): %s
+
+### Topics
+%s
+
+
+    """
+
+    topics_template = "1. [%s](#%s)"
+
+    author_template = "[#](#%s) **%s**: %s\n"
+    line_template = "[#](#%s) %s\n"
+    text_template = "> %s: %s\n"
+
+    date = datetime.strftime(meta["date"], "%d %B %Y")
+    datelink = datetime.strftime(meta["date"], "%Y%m%d")
+
+    for time, topic in meta["topics"]:
+        topics = "%s%s" % (topics, topics_template % (topic, time))
+
+    markdown = template % (date, datelink, (',').join(
+        meta["attendees"]), (',').join(meta["scribes"]), topics)
+
+    print(markdown)
+
+    for time, msg in messages.items():
+        if msg["author"] is not None:
+            if not msg["scribed"]:
+                formatted = text_template % (msg["author"], msg["content"])
+            else:
+                formatted = author_template % (
+                    msg["time"], msg["author"], msg["content"])
+        else:
+            formatted = line_template % (msg["time"], msg["content"])
+
+        markdown = "%s%s" % (markdown, formatted)
 
     return markdown
 
@@ -122,8 +172,9 @@ def convert(args):
         jason = json.load(f)
 
     data = get_topic(jason, topic)
-    markdown = to_markdown(data)
-    write(markdown, outfile)
+    messages, meta = sort_data(data)
+    markdown = to_markdown(messages, meta)
+    # write(markdown, outfile)
 
 
 def cli():
