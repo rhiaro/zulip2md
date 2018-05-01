@@ -28,7 +28,7 @@ $ python zulip2md --in=zulip-stream-name.json --out=/path/to/out.md --topic=yyyy
 
 If no topic is passed, it exports the whole stream.
 
-## Getting the export JSON
+### Getting the export JSON
 
 The Docker image included in this repo has this bundled, but if you're not using that you can independently use [zulip-export](https://github.com/zulip/zulip/blob/master/tools/zulip-export/zulip-export) to export your stream. See that repo for more usage examples, but for reference you wanna do something like:
 
