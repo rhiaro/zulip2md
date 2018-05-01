@@ -45,6 +45,13 @@ def sort_data(data):
             topic = message["content"].replace(
                 "-", "").replace("*", "").replace("TOPIC:", "").strip()
             topics.append((message["timestamp"], topic))
+            attributed[message["timestamp"]] = {
+                "time": message["timestamp"],
+                "author": None,
+                "content": topic,
+                "scribed": False
+            }
+            continue
         # Get proposals
         if "PROPOSAL:" in message["content"] or "PROPOSED:" in message["content"]:
             proposals.append(message["content"])
@@ -61,6 +68,7 @@ def sort_data(data):
             scribe = scribe.replace("*", "")
             scribe = scribe.strip()
             scribes.append(scribe)
+            continue
 
         # Scribe messages
         # TODO replace this with regex /@\*\*([^*]*)\*\*/ says
@@ -120,16 +128,19 @@ def to_markdown(messages, meta):
 * Scribe(s): %s
 
 ### Topics
+
 %s
 
+### Minutes
 
-    """
+"""
 
-    topics_template = "1. [%s](#%s)"
+    topics_template = "1. [%s](#%s)\n"
 
-    author_template = "[#](#%s) **%s**: %s\n"
-    line_template = "[#](#%s) %s\n"
-    text_template = "> %s: %s\n"
+    author_template = """<a id="%s" href="#%s">#</a> **%s** says: %s\n\n"""
+    line_template = """<a id="%s" href="#%s">#</a> %s\n\n"""
+    text_template = """<a id="%s" href="#%s">#</a> [%s] *%s*\n\n"""
+    topic_template = """### %s\n\n"""
 
     date = datetime.strftime(meta["date"], "%d %B %Y")
     datelink = datetime.strftime(meta["date"], "%Y%m%d")
@@ -137,20 +148,25 @@ def to_markdown(messages, meta):
     for time, topic in meta["topics"]:
         topics = "%s%s" % (topics, topics_template % (topic, time))
 
-    markdown = template % (date, datelink, (',').join(
-        meta["attendees"]), (',').join(meta["scribes"]), topics)
-
-    print(markdown)
+    markdown = template % (date, datelink, (', ').join(
+        meta["attendees"]), (', ').join(meta["scribes"]), topics)
 
     for time, msg in messages.items():
+
         if msg["author"] is not None:
-            if not msg["scribed"]:
-                formatted = text_template % (msg["author"], msg["content"])
-            else:
-                formatted = author_template % (
-                    msg["time"], msg["author"], msg["content"])
+
+            if not msg["scribed"]:  # inline interjections
+                formatted = text_template % (
+                    msg["time"], msg["time"], msg["author"], msg["content"])
+            else:  # First statement
+                formatted = author_template % (msg["time"], msg["time"], msg[
+                                               "author"], msg["content"])
         else:
-            formatted = line_template % (msg["time"], msg["content"])
+            if not msg["scribed"]:  # topics
+                formatted = topic_template % msg["content"]
+            else:  # subsequent statements
+                formatted = line_template % (
+                    msg["time"], msg["time"], msg["content"])
 
         markdown = "%s%s" % (markdown, formatted)
 
@@ -158,8 +174,8 @@ def to_markdown(messages, meta):
 
 
 def write(markdown, outfile):
-    with open(outfile) as file:
-        pass
+    with open(outfile, 'w') as file:
+        file.write(markdown)
 
 
 def convert(args):
@@ -174,7 +190,8 @@ def convert(args):
     data = get_topic(jason, topic)
     messages, meta = sort_data(data)
     markdown = to_markdown(messages, meta)
-    # write(markdown, outfile)
+    # print(markdown)
+    write(markdown, outfile)
 
 
 def cli():
