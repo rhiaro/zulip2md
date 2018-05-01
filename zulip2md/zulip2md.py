@@ -27,6 +27,15 @@ def get_scribed_block(first_message, data):
         return None, None
 
 
+def strip_quotes(text):
+    parts = text.split("```")
+    if len(parts) > 1:
+        stripped = "Re: \"%s\" -- %s" % (parts[0], parts[1])
+        return stripped
+    else:
+        return text
+
+
 def sort_data(data):
     markdown = ""
     attributed = OrderedDict()
@@ -38,8 +47,9 @@ def sort_data(data):
     scribes = []
     for message in data.values():
         # Get attendees
-        if "present+" in message["content"]:
+        if "present+" in message["content"].lower():
             attendees.append(message["sender_full_name"])
+            continue
         # Get topics
         if "TOPIC:" in message["content"]:
             topic = message["content"].replace(
@@ -94,7 +104,7 @@ def sort_data(data):
             attributed[message["timestamp"]] = {
                 "time": message["timestamp"],
                 "author": message["sender_full_name"],
-                "content": message["content"],
+                "content": strip_quotes(message["content"]),
                 "scribed": False
             }
 
