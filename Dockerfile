@@ -7,9 +7,9 @@ RUN apt-get -qq -y autoremove && apt-get clean \
 
 RUN pip install -q --upgrade pip && pip install -q --upgrade setuptools zulip
 
-ARG stream
-
-COPY .zuliprc ~/
+COPY .zuliprc /root/
 WORKDIR /app
-RUN git clone git@github.com:zulip/zulip.git
-RUN python zulip/tools/zulip-export/zulip-export --stream=$stream
+RUN git clone https://github.com/zulip/zulip.git
+# RUN python zulip/tools/zulip-export/zulip-export --stream=$stream
+
+ENTRYPOINT python /app/zulip/tools/zulip-export/zulip-export --stream=$STREAM && cp zulip-$STREAM.json /out/
