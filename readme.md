@@ -12,12 +12,10 @@ First rename `.zuliprc.tmpl` to `.zuliprc` and fill in your API key and stuff.
 
 ```
 $ docker build -t zulip2md .
-$ docker run -v /path/to/output:/out -e STREAM=your-stream-name zulip2md
+$ docker run -v /path/to/output:/out -e STREAM=your-stream-name -e TOPIC=your-topic-name zulip2md
 ```
 
-The exported JSON of the whole stream will magically appear in `/path/to/output`
-
-**TODO**: turn this into markdown
+Both the exported JSON of the whole stream and the markdown conversion of the specific topic will magically appear in `/path/to/output`.
 
 ### Without Docker
 
