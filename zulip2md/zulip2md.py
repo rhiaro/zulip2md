@@ -177,7 +177,8 @@ def to_markdown(messages, meta):
     datelink = datetime.strftime(meta["date"], "%Y%m%d")
 
     for time, topic in meta["topics"]:
-        topics = "%s%s" % (topics, topics_template % (topic, time))
+        topic_slug = topic.lower().replace(" ", "-").replace("'", "").replace('"', '')
+        topics = "%s%s" % (topics, topics_template % (topic, topic_slug))
 
     for time, res in meta["resolutions"]:
         ress = "%s%s" % (ress, res_template % (res, time))
