@@ -6,6 +6,21 @@ from datetime import datetime
 from collections import OrderedDict
 
 
+def is_in(term, string):
+    terms = {
+        "prop": ["proposal:", "proposed:"],
+        "reso": ["resolved:", "resolution:"],
+        "topi": ["topic:"],
+        "pres": ["present+"],
+        "scri": ["scribe:"]
+    }
+    for t in terms[term]:
+        if t in string.lower():
+            return True
+
+    return False
+
+
 def get_topic(jason, topic):
     timestream = {}
     for message in jason:
@@ -47,13 +62,13 @@ def sort_data(data):
     scribes = []
     for message in data.values():
         # Get attendees
-        if "present+" in message["content"].lower():
+        if is_in("pres", message["content"]):
             attendees.append(message["sender_full_name"])
             continue
         # Get topics
-        if "TOPIC:" in message["content"]:
+        if is_in("topi", message["content"]):
             topic = message["content"].replace(
-                "-", "").replace("*", "").replace("TOPIC:", "").strip()
+                "-", "").replace("*", "").replace("TOPIC:", "").replace("topic:", "").replace("Topic:", "").strip()
             topics.append((message["timestamp"], topic))
             attributed[message["timestamp"]] = {
                 "time": message["timestamp"],
@@ -63,14 +78,14 @@ def sort_data(data):
             }
             continue
         # Get proposals
-        if "PROPOSAL:" in message["content"] or "PROPOSED:" in message["content"]:
+        if is_in("prop", message["content"]):
             proposals.append(message["content"])
         # Get resolutions
-        if "RESOLUTION:" in message["content"] or "RESOLVED:" in message["content"]:
+        if is_in("reso", message["content"]):
             resolutions.append(message["content"])
 
         # Find the scribe(s)
-        if "scribe: " in message["content"].lower():
+        if is_in("scri", message["content"]):
             scribe = message["content"].lower().split("scribe: ")[1]
             if "\n" in scribe:
                 scribe = scribe.split("\n")[0]
