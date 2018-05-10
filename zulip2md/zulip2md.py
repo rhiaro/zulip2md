@@ -79,10 +79,10 @@ def sort_data(data):
             continue
         # Get proposals
         if is_in("prop", message["content"]):
-            proposals.append(message["content"])
+            proposals.append((message["timestamp"], message["content"]))
         # Get resolutions
         if is_in("reso", message["content"]):
-            resolutions.append(message["content"])
+            resolutions.append((message["timestamp"], message["content"]))
 
         # Find the scribe(s)
         if is_in("scri", message["content"]):
@@ -144,6 +144,7 @@ def to_markdown(messages, meta):
 
     markdown = ""
     topics = ""
+    ress = ""
 
     template = """
 ## Minutes: Credible Web CG (%s)
@@ -156,11 +157,16 @@ def to_markdown(messages, meta):
 
 %s
 
+### Resolutions
+
+%s
+
 ### Minutes
 
 """
 
     topics_template = "1. [%s](#%s)\n"
+    res_template = "1. [%s](#%s)\n"
 
     author_template = """<a id="%s" href="#%s">#</a> **%s** says: %s\n\n"""
     line_template = """<a id="%s" href="#%s">#</a> %s\n\n"""
@@ -173,8 +179,11 @@ def to_markdown(messages, meta):
     for time, topic in meta["topics"]:
         topics = "%s%s" % (topics, topics_template % (topic, time))
 
+    for time, res in meta["resolutions"]:
+        ress = "%s%s" % (ress, res_template % (res, time))
+
     markdown = template % (date, datelink, (', ').join(
-        meta["attendees"]), (', ').join(meta["scribes"]), topics)
+        meta["attendees"]), (', ').join(meta["scribes"]), topics, ress)
 
     for time, msg in messages.items():
 
